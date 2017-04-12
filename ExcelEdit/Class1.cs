@@ -5,6 +5,7 @@ using System.Web;
 using Microsoft.Office.Interop;
 using Microsoft.Office.Core;
 using Microsoft.Office.Interop.Excel;
+using System.Collections.Generic;
 
 namespace TheExcelEdit
 {
@@ -14,11 +15,11 @@ namespace TheExcelEdit
     public class ExcelEdit
     {
         public string mFilename;
-        public Microsoft.Office.Interop.Excel.Application app;
-        public Microsoft.Office.Interop.Excel.Workbooks wbs;
-        public Microsoft.Office.Interop.Excel.Workbook wb;
-        public Microsoft.Office.Interop.Excel.Worksheets wss;
-        public Microsoft.Office.Interop.Excel.Worksheet ws;
+        public Application app;
+        public Workbooks wbs;
+        public Workbook wb;
+        public Worksheets wss;
+        public Worksheet ws;
 
         public ExcelEdit()
         {
@@ -29,14 +30,14 @@ namespace TheExcelEdit
 
         public void Create()//创建一个Microsoft.Office.Interop.Excel对象
         {
-            app = new Microsoft.Office.Interop.Excel.Application();
+            app = new Application();
             wbs = app.Workbooks;
             wb = wbs.Add(true);
         }
 
         public void Open(string FileName)//打开一个Microsoft.Office.Interop.Excel文件
         {
-            app = new Microsoft.Office.Interop.Excel.Application();
+            app = new Application();
             wbs = app.Workbooks;
             wb = wbs.Add(FileName);
             //wb = wbs.Open(FileName, 0, true, 5,"", "", true, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows, "t", false, false, 0, true,Type.Missing,Type.Missing);
@@ -44,59 +45,92 @@ namespace TheExcelEdit
             mFilename = FileName;
         }
 
-        public Microsoft.Office.Interop.Excel.Worksheet GetSheet(string SheetName)
-        //获取一个工作表
+        private List<string> GetSheetNames()
         {
-            Microsoft.Office.Interop.Excel.Worksheet s = (Microsoft.Office.Interop.Excel.Worksheet)wb.Worksheets[SheetName];
-            return s;
-        }
-
-        public Microsoft.Office.Interop.Excel.Worksheet GetSheet(int i)
-        //获取一个工作表
-        {
-            if((i<= wb.Worksheets.Count) && (i>=1) )
+            List<string> sheetNames = new List<string>();
+            foreach (Worksheet sheet in wb.Worksheets)
             {
-                Microsoft.Office.Interop.Excel.Worksheet s = (Microsoft.Office.Interop.Excel.Worksheet)wb.Worksheets.get_Item(i);
-                return s;
+                string sheetName = sheet.Name;
+                if (!string.IsNullOrEmpty(sheetName))
+                {
+                    sheetNames.Add(sheetName);
+                }
             }
-            
-            return (Microsoft.Office.Interop.Excel.Worksheet)wb.Worksheets.get_Item(1);
+            return sheetNames;
         }
 
         public string GetSheetName(int i)
         //获取一个工作表
         {
-            Microsoft.Office.Interop.Excel.Worksheet s = GetSheet(i);
+            Worksheet s = GetSheet(i);
             return s.Name;
         }
 
-        public Microsoft.Office.Interop.Excel.Worksheet AddSheet(string SheetName)
+        public Worksheet GetSheet(string SheetName)
+        //获取一个工作表
+        {
+            Worksheet s = (Worksheet)wb.Worksheets[SheetName];
+            return s;
+        }
+
+        public Worksheet GetSheet(int i)
+        //获取一个工作表
+        {
+            if((i<= wb.Worksheets.Count) && (i>=1) )
+            {
+                Worksheet s = (Worksheet)wb.Worksheets.get_Item(i);
+                return s;
+            }
+            
+            return (Worksheet)wb.Worksheets.get_Item(1);
+        }
+
+        public Worksheet AddSheet(string SheetName)
         //添加一个工作表
         {
-            Microsoft.Office.Interop.Excel.Worksheet s = (Microsoft.Office.Interop.Excel.Worksheet)wb.Worksheets.Add(Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+            Worksheet s = (Worksheet)wb.Worksheets.Add(Type.Missing, Type.Missing, Type.Missing, Type.Missing);
             s.Name = SheetName;
             return s;
         }
 
         public void DelSheet(string SheetName)//删除一个工作表
         {
-            ((Microsoft.Office.Interop.Excel.Worksheet)wb.Worksheets[SheetName]).Delete();
+            ((Worksheet)wb.Worksheets[SheetName]).Delete();
         }
 
-        public Microsoft.Office.Interop.Excel.Worksheet ReNameSheet(string OldSheetName, string NewSheetName)//重命名一个工作表一
+        public Worksheet ReNameSheet(string OldSheetName, string NewSheetName)//重命名一个工作表一
         {
-            Microsoft.Office.Interop.Excel.Worksheet s = (Microsoft.Office.Interop.Excel.Worksheet)wb.Worksheets[OldSheetName];
+            Worksheet s = (Worksheet)wb.Worksheets[OldSheetName];
             s.Name = NewSheetName;
             return s;
         }
 
-        public Microsoft.Office.Interop.Excel.Worksheet ReNameSheet(Microsoft.Office.Interop.Excel.Worksheet Sheet, string NewSheetName)//重命名一个工作表二
+        public Worksheet ReNameSheet(Worksheet Sheet, string NewSheetName)//重命名一个工作表二
         {
             Sheet.Name = NewSheetName;
             return Sheet;
         }
 
-        public void SetCellValue(Microsoft.Office.Interop.Excel.Worksheet ws, int x, int y, object value)
+        public void FindItem(int i, string strtext, out int x, out int y)
+        {
+            x = 0;y = 0;
+            Worksheet s = GetSheet(i);
+            int rowsCount = s.UsedRange.Rows.Count;
+            int colsCount = s.UsedRange.Columns.Count;
+            Range c1 = (Range)s.Cells[1, 1];
+            Range c2 = (Range)s.Cells[rowsCount, colsCount];
+            Range rng = s.get_Range(c1, c2);
+
+            Range currentFind = rng.Find(strtext, Type.Missing,XlFindLookIn.xlValues, XlLookAt.xlWhole,XlSearchOrder.xlByRows, XlSearchDirection.xlNext, false,
+                            Type.Missing, Type.Missing);
+            if (currentFind != null)
+            {
+                x = currentFind.Row;
+                y = currentFind.Column;
+            }           
+        }
+
+        public void SetCellValue(Worksheet ws, int x, int y, object value)
         //ws：要设值的工作表     X行Y列     value   值
         {
             ws.Cells[x, y] = value;
@@ -110,41 +144,37 @@ namespace TheExcelEdit
 
         public object GetExcelData(string ws)
         {
-            Microsoft.Office.Interop.Excel.Worksheet s = GetSheet(ws);
+            Worksheet s = GetSheet(ws);
             int rowsCount = s.UsedRange.Rows.Count;
             int colsCount = s.UsedRange.Columns.Count;
-            //int rowsCount = s.get_Range("A65536", "A65536").get_End(Microsoft.Office.Interop.Excel.XlDirection.xlUp).Row;
-            //int colsCount = s.get_Range("ZZ1", "ZZ1").get_End(Microsoft.Office.Interop.Excel.XlDirection.xlToLeft).Column;
-
-            //rowsCount：最大行    colsCount：最大列
-            Microsoft.Office.Interop.Excel.Range c1 = (Microsoft.Office.Interop.Excel.Range)s.Cells[1, 1];
-            Microsoft.Office.Interop.Excel.Range c2 = (Microsoft.Office.Interop.Excel.Range)s.Cells[rowsCount, colsCount];
-            Range rng = (Microsoft.Office.Interop.Excel.Range)s.get_Range(c1, c2);
-            object[,] exceldata = (object[,])rng.get_Value(Microsoft.Office.Interop.Excel.XlRangeValueDataType.xlRangeValueDefault);
+            Range c1 = (Range)s.Cells[1, 1];
+            Range c2 = (Range)s.Cells[rowsCount, colsCount];
+            Range rng = s.get_Range(c1, c2);
+            object[,] exceldata = (object[,])rng.get_Value(XlRangeValueDataType.xlRangeValueDefault);
             return exceldata;
         }
 
-        public void SetCellProperty(Microsoft.Office.Interop.Excel.Worksheet ws, int Startx, int Starty, int Endx, int Endy, int size, string name, Microsoft.Office.Interop.Excel.Constants color, Microsoft.Office.Interop.Excel.Constants HorizontalAlignment)
+        public void SetCellProperty(Worksheet ws, int Startx, int Starty, int Endx, int Endy, int size, string name, Constants color, Constants HorizontalAlignment)
         //设置一个单元格的属性   字体，   大小，颜色   ，对齐方式
         {
             name = "宋体";
             size = 12;
-            color = Microsoft.Office.Interop.Excel.Constants.xlAutomatic;
-            HorizontalAlignment = Microsoft.Office.Interop.Excel.Constants.xlRight;
+            color = Constants.xlAutomatic;
+            HorizontalAlignment = Constants.xlRight;
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).Font.Name = name;
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).Font.Size = size;
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).Font.Color = color;
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).HorizontalAlignment = HorizontalAlignment;
         }
 
-        public void SetCellProperty(string wsn, int Startx, int Starty, int Endx, int Endy, int size, string name, Microsoft.Office.Interop.Excel.Constants color, Microsoft.Office.Interop.Excel.Constants HorizontalAlignment)
+        public void SetCellProperty(string wsn, int Startx, int Starty, int Endx, int Endy, int size, string name, Constants color, Constants HorizontalAlignment)
         {
             //name = "宋体";
             //size = 12;
             //color = Microsoft.Office.Interop.Excel.Constants.xlAutomatic;
             //HorizontalAlignment = Microsoft.Office.Interop.Excel.Constants.xlRight;
 
-            Microsoft.Office.Interop.Excel.Worksheet ws = GetSheet(wsn);
+            Worksheet ws = GetSheet(wsn);
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).Font.Name = name;
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).Font.Size = size;
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).Font.Color = color;
@@ -152,7 +182,7 @@ namespace TheExcelEdit
             ws.get_Range(ws.Cells[Startx, Starty], ws.Cells[Endx, Endy]).HorizontalAlignment = HorizontalAlignment;
         }
 
-        public void UniteCells(Microsoft.Office.Interop.Excel.Worksheet ws, int x1, int y1, int x2, int y2)
+        public void UniteCells(Worksheet ws, int x1, int y1, int x2, int y2)
         //合并单元格
         {
             ws.get_Range(ws.Cells[x1, y1], ws.Cells[x2, y2]).Merge(Type.Missing);
@@ -176,7 +206,7 @@ namespace TheExcelEdit
             }
         }
 
-        public void InsertTable(System.Data.DataTable dt, Microsoft.Office.Interop.Excel.Worksheet ws, int startX, int startY)
+        public void InsertTable(System.Data.DataTable dt, Worksheet ws, int startX, int startY)
         //将内存中数据表格插入到Microsoft.Office.Interop.Excel指定工作表的指定位置二
         {
             for (int i = 0; i <= dt.Rows.Count - 1; i++)
@@ -197,25 +227,19 @@ namespace TheExcelEdit
             {
                 for (int j = 0; j <= dt.Columns.Count - 1; j++)
                 {
-
                     GetSheet(ws).Cells[i + startX, j + startY] = dt.Rows[i][j];
-
                 }
-
             }
-
         }
 
-        public void AddTable(System.Data.DataTable dt, Microsoft.Office.Interop.Excel.Worksheet ws, int startX, int startY)
+        public void AddTable(System.Data.DataTable dt, Worksheet ws, int startX, int startY)
         //将内存中数据表格添加到Microsoft.Office.Interop.Excel指定工作表的指定位置二
         {
             for (int i = 0; i <= dt.Rows.Count - 1; i++)
             {
                 for (int j = 0; j <= dt.Columns.Count - 1; j++)
                 {
-
                     ws.Cells[i + startX, j + startY] = dt.Rows[i][j];
-
                 }
             }
         }
@@ -253,7 +277,7 @@ namespace TheExcelEdit
             {
                 wb.ActiveChart.ChartType = ChartType;
                 wb.ActiveChart.SetSourceData(GetSheet(ws).get_Range(GetSheet(ws).Cells[DataSourcesX1, DataSourcesY1], GetSheet(ws).Cells[DataSourcesX2, DataSourcesY2]), ChartDataType);
-                wb.ActiveChart.Location(Microsoft.Office.Interop.Excel.XlChartLocation.xlLocationAsObject, ws);
+                wb.ActiveChart.Location(XlChartLocation.xlLocationAsObject, ws);
             }
         }
 
@@ -284,15 +308,13 @@ namespace TheExcelEdit
         {
             try
             {
-                wb.SaveAs(FileName, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+                wb.SaveAs(FileName, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, XlSaveAsAccessMode.xlExclusive, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
                 return true;
-
             }
 
             catch (Exception ex)
             {
                 return false;
-
             }
         }
 
