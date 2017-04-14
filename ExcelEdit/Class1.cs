@@ -45,7 +45,7 @@ namespace TheExcelEdit
             mFilename = FileName;
         }
 
-        private List<string> GetSheetNames()
+        public List<string> GetSheetNames()
         {
             List<string> sheetNames = new List<string>();
             foreach (Worksheet sheet in wb.Worksheets)
@@ -60,10 +60,14 @@ namespace TheExcelEdit
         }
 
         public string GetSheetName(int i)
-        //获取一个工作表
         {
             Worksheet s = GetSheet(i);
             return s.Name;
+        }
+
+        public void SetFileName(string FileName)
+        {
+            mFilename = FileName;
         }
 
         public Worksheet GetSheet(string SheetName)
@@ -111,17 +115,36 @@ namespace TheExcelEdit
             return Sheet;
         }
 
+        public object[,] GetUsedRangeData(string ws)
+        {
+            Worksheet s = GetSheet(ws);
+            object[,] exceldata = (object[,])s.UsedRange.get_Value(XlRangeValueDataType.xlRangeValueDefault);
+            return exceldata;
+        }
+
+        public void GetUsedRange(string ws, out int x, out int y)
+        {
+            x = 0; y = 0;
+            Worksheet s = GetSheet(ws);
+            x = s.UsedRange.Rows.Count;
+            y = s.UsedRange.Columns.Count;
+        }
+
+        public object[,] GetRangeData(string ws, int a, int b, int x, int y)
+        {
+            Worksheet s = GetSheet(ws);
+            Range c1 = (Range)s.Cells[a, b];
+            Range c2 = (Range)s.Cells[x, y];
+            Range rng = s.get_Range(c1, c2);
+            object[,] exceldata = (object[,])rng.get_Value(XlRangeValueDataType.xlRangeValueDefault);
+            return exceldata;
+        }
+
         public void FindItem(int i, string strtext, out int x, out int y)
         {
             x = 0;y = 0;
             Worksheet s = GetSheet(i);
-            int rowsCount = s.UsedRange.Rows.Count;
-            int colsCount = s.UsedRange.Columns.Count;
-            Range c1 = (Range)s.Cells[1, 1];
-            Range c2 = (Range)s.Cells[rowsCount, colsCount];
-            Range rng = s.get_Range(c1, c2);
-
-            Range currentFind = rng.Find(strtext, Type.Missing,XlFindLookIn.xlValues, XlLookAt.xlWhole,XlSearchOrder.xlByRows, XlSearchDirection.xlNext, false,
+            Range currentFind = s.UsedRange.Find(strtext, Type.Missing,XlFindLookIn.xlValues, XlLookAt.xlWhole,XlSearchOrder.xlByRows, XlSearchDirection.xlNext, false,
                             Type.Missing, Type.Missing);
             if (currentFind != null)
             {
@@ -130,11 +153,24 @@ namespace TheExcelEdit
             }           
         }
 
-        public void SetCellValue(Worksheet ws, int x, int y, object value)
-        //ws：要设值的工作表     X行Y列     value   值
+        public void FindItem(string ws, string strtext, out int x, out int y)
         {
-            ws.Cells[x, y] = value;
+            x = 0; y = 0;
+            Worksheet s = GetSheet(ws);
+            Range currentFind = s.UsedRange.Find(strtext, Type.Missing, XlFindLookIn.xlValues, XlLookAt.xlWhole, XlSearchOrder.xlByRows, XlSearchDirection.xlNext, false,
+                            Type.Missing, Type.Missing);
+            if (currentFind != null)
+            {
+                x = currentFind.Row;
+                y = currentFind.Column;
+            }
         }
+
+        //public void SetCellValue(Worksheet ws, int x, int y, object value)
+        ////ws：要设值的工作表     X行Y列     value   值
+        //{
+        //    ws.Cells[x, y] = value;
+        //}
 
         public void SetCellValue(string ws, int x, int y, object value)
         //ws：要设值的工作表的名称 X行Y列 value 值
@@ -142,16 +178,28 @@ namespace TheExcelEdit
             GetSheet(ws).Cells[x, y] = value;
         }
 
-        public object GetExcelData(string ws)
+        public string GetCellText(string sheetName, int rowindex, int columnindex)
         {
-            Worksheet s = GetSheet(ws);
-            int rowsCount = s.UsedRange.Rows.Count;
-            int colsCount = s.UsedRange.Columns.Count;
-            Range c1 = (Range)s.Cells[1, 1];
-            Range c2 = (Range)s.Cells[rowsCount, colsCount];
-            Range rng = s.get_Range(c1, c2);
-            object[,] exceldata = (object[,])rng.get_Value(XlRangeValueDataType.xlRangeValueDefault);
-            return exceldata;
+            string value = null;
+            Worksheet sheet = GetSheet(sheetName);
+            //get value in A1
+            value = (string)((Range)sheet.Cells[rowindex, columnindex]).Text;
+            return value;
+        }
+
+        public string[,] GetRangeText(string ws, int a, int b, int x, int y)
+        {
+            string[,] value = new string[x-a+1,y-b+1];
+            Worksheet sheet = GetSheet(ws);
+            //get value in A1
+            for(int i=a; i<=x; i++)
+            {
+                for(int j=b; j<=y; j++)
+                {
+                    value[i-a,j-b] = (string)((Range)sheet.Cells[i, j]).Text;
+                }
+            }
+            return value;
         }
 
         public void SetCellProperty(Worksheet ws, int Startx, int Starty, int Endx, int Endy, int size, string name, Constants color, Constants HorizontalAlignment)
@@ -251,24 +299,6 @@ namespace TheExcelEdit
             //后面的数字表示位置
         }
 
-        //public void InsertPictures(string Filename, string ws, int Height, int Width)
-        //插入图片操作二
-        //{
-        //    GetSheet(ws).Shapes.AddPicture(Filename, MsoTriState.msoFalse, MsoTriState.msoTrue, 10, 10, 150, 150);
-        //    GetSheet(ws).Shapes.get_Range(Type.Missing).Height = Height;
-        //    GetSheet(ws).Shapes.get_Range(Type.Missing).Width = Width;
-        //}
-        //public void InsertPictures(string Filename, string ws, int left, int top, int Height, int Width)
-        //插入图片操作三
-        //{
-
-        //    GetSheet(ws).Shapes.AddPicture(Filename, MsoTriState.msoFalse, MsoTriState.msoTrue, 10, 10, 150, 150);
-        //    GetSheet(ws).Shapes.get_Range(Type.Missing).IncrementLeft(left);
-        //    GetSheet(ws).Shapes.get_Range(Type.Missing).IncrementTop(top);
-        //    GetSheet(ws).Shapes.get_Range(Type.Missing).Height = Height;
-        //    GetSheet(ws).Shapes.get_Range(Type.Missing).Width = Width;
-        //}
-
         public void InsertActiveChart(Microsoft.Office.Interop.Excel.XlChartType ChartType, string ws, int DataSourcesX1, int DataSourcesY1, int DataSourcesX2, int DataSourcesY2, Microsoft.Office.Interop.Excel.XlRowCol ChartDataType)
         //插入图表操作
         {
@@ -308,7 +338,8 @@ namespace TheExcelEdit
         {
             try
             {
-                wb.SaveAs(FileName, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, XlSaveAsAccessMode.xlExclusive, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+                wb.Saved = true;
+                wb.SaveCopyAs(FileName);
                 return true;
             }
 
@@ -318,11 +349,32 @@ namespace TheExcelEdit
             }
         }
 
+ //       public class KeyMyExcelProcess
+ //       {
+ ////           [DllImport("User32.dll", CharSet = CharSet.Auto)]
+ //           //public static extern int GetWindowThreadProcessId(IntPtr hwnd, out int ID);
+ //           public static void Kill(Microsoft.Office.Interop.Excel.Application excel)
+ //           {
+ //               try
+ //               {
+ //                   IntPtr t = new IntPtr(excel.Hwnd);   //得到这个句柄，具体作用是得到这块内存入口
+ //                   int k = 0;
+ //                   GetWindowThreadProcessId(t, out k);   //得到本进程唯一标志k
+ //                   System.Diagnostics.Process p = System.Diagnostics.Process.GetProcessById(k);   //得到对进程k的引用
+ //                   p.Kill();     //关闭进程k
+ //               }
+ //               catch (System.Exception ex)
+ //               {
+ //                   throw ex;
+ //               }
+ //           }
+ //       }
+
         public void Close()
         //关闭一个Microsoft.Office.Interop.Excel对象，销毁对象
         {
             //wb.Save();
-            wb.Close(Type.Missing, Type.Missing, Type.Missing);
+            wb.Close(false, Type.Missing, Type.Missing);
             wbs.Close();
             app.Quit();
             wb = null;
