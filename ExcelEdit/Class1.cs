@@ -19,9 +19,7 @@ namespace TheExcelEdit
 
         public ExcelEdit()
         {
-            //
-            // TODO: 在此处添加构造函数逻辑
-            //
+
         }
 
         public void Create()//创建一个Microsoft.Office.Interop.Excel对象
@@ -36,8 +34,6 @@ namespace TheExcelEdit
             app = new Application();
             wbs = app.Workbooks;
             wb = wbs.Add(FileName);
-            //wb = wbs.Open(FileName, 0, true, 5,"", "", true, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows, "t", false, false, 0, true,Type.Missing,Type.Missing);
-            //wb = wbs.Open(FileName,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing);
             mFilename = FileName;
         }
 
@@ -162,11 +158,10 @@ namespace TheExcelEdit
             }
         }
 
-        //public void SetCellValue(Worksheet ws, int x, int y, object value)
-        ////ws：要设值的工作表     X行Y列     value   值
-        //{
-        //    ws.Cells[x, y] = value;
-        //}
+        public void SetCellValue(Worksheet ws, int x, int y, object value)
+        {
+            ws.Cells[x, y] = value;
+        }
 
         public void SetCellValue(string ws, int x, int y, object value)
         //ws：要设值的工作表的名称 X行Y列 value 值
@@ -178,7 +173,6 @@ namespace TheExcelEdit
         {
             string value = null;
             Worksheet sheet = GetSheet(sheetName);
-            //get value in A1
             value = (string)((Range)sheet.Cells[rowindex, columnindex]).Text;
             return value;
         }
